@@ -2,7 +2,7 @@
 
 This repository contains an interactive, gamified platform for learning about Artificial Intelligence, from foundational concepts to advanced topics.
 
-❗❗ Start work in this (complete) app here: https://learn-with-ai-web.vercel.app/
+❗❗ Try this (completely free) app here: https://learn-with-ai-web.vercel.app/
 
 ## How It Works
 
