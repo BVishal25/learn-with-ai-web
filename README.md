@@ -2,8 +2,6 @@
 
 This repository contains an interactive, gamified platform for learning about Artificial Intelligence, from foundational concepts to advanced topics.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1eRTLqc7KGmCcaqoIyA1u8HD6YiD-IeIq?showAssistant=true&showCode=true&showPreview=true&showTreeView=true&resourceKey
-
 ## How It Works
 
 This application is built on two fundamental principles:
