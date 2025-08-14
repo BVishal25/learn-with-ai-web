@@ -2,13 +2,15 @@
 
 This repository contains an interactive, gamified platform for learning about Artificial Intelligence, from foundational concepts to advanced topics.
 
+❗❗ Start work in this (complete) app here: https://learn-with-ai-web.vercel.app/
+
 ## How It Works
 
 This application is built on two fundamental principles:
 
 ### 1. Secure Authentication via Google Sign-In
 
-The application uses Google Sign-In as its exclusive method for user authentication. There is no demo or guest mode. This ensures that each user has a unique identity to track their progress, notes, and personalized settings. To enable this, the application deployer **must** provide a valid Google Client ID.
+The application uses Google Sign-In as its exclusive method for user authentication. This ensures that each user has a unique identity to track their progress, notes, and personalized settings. To enable this **locally**, the application deployer **must** provide a valid Google Client ID.
 
 ### 2. User-Managed AI Provider Keys
 
@@ -28,8 +30,14 @@ This model gives you full control over your API usage and allows you to experime
 -   **👤 Secure User Profiles:** Google Sign-In ensures all your progress, notes, and settings are saved and persistent.
 -   **🍅 Pomodoro Focus Timer:** A built-in timer to help you manage study sessions and stay focused.
 -   **🎨 Customizable Themes:** Personalize your learning environment by choosing from multiple color themes, including a system-based dark/light mode.
-
+-   **❗ Remembers Contents:** The lessons will be cached once it got loaded. So, when user re-launch the app, they don't have to load it again. It saves the API request tokens. 
 ---
+
+## Start work on the app NOW❗:
+
+1. You can start work on this app NOW!! (click the link): https://learn-with-ai-web.vercel.app/ 
+
+❗❗Spoilers: IT IS COMPLETELY FREE ❗❗ (except your own AI API key)
 
 ## Run Locally
 
