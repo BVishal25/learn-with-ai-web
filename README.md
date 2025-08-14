@@ -33,11 +33,13 @@ This model gives you full control over your API usage and allows you to experime
 -   **❗ Remembers Contents:** The lessons will be cached once it got loaded. So, when user re-launch the app, they don't have to load it again. It saves the API request tokens. 
 ---
 
-## Start work on the app NOW❗:
+## Try this app NOW❗:
 
-1. You can start work on this app NOW!! (click the link): https://learn-with-ai-web.vercel.app/ 
+1. You can try this app NOW!! : https://learn-with-ai-web.vercel.app/ 
 
 ❗❗Spoilers: IT IS COMPLETELY FREE ❗❗ (except your own AI API key)
+
+---
 
 ## Run Locally
 
