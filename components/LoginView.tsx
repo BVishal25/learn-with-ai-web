@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrainCircuitIcon } from './ui/icons';
+import { useAuth } from '../contexts/AuthContext';
 
 // This is a global variable from the GSI script
 declare const google: any;
@@ -8,19 +9,22 @@ declare const google: any;
 const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
 
 const LoginView: React.FC = () => {
-
-    const isGapiReady = typeof google !== 'undefined';
+    const { isGsiInitialized } = useAuth();
     const isClientIdMissing = !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID_HERE';
 
     useEffect(() => {
-        // Ensure the Google script is loaded and the button container exists
-        if (isGapiReady && !isClientIdMissing) {
-            google.accounts.id.renderButton(
-                document.getElementById('signInDiv'),
-                { theme: 'filled_black', size: 'large', type: 'standard', text: 'signin_with', shape: 'rectangular', width: '300' }
-            );
+        // The renderButton function should only be called once GSI is initialized and the element exists.
+        if (isGsiInitialized && !isClientIdMissing && document.getElementById('signInDiv')) {
+            try {
+                google.accounts.id.renderButton(
+                    document.getElementById('signInDiv'),
+                    { theme: 'filled_black', size: 'large', type: 'standard', text: 'signin_with', shape: 'rectangular', width: '300' }
+                );
+            } catch (error) {
+                console.error("Error rendering Google Sign-In button:", error);
+            }
         }
-    }, [isGapiReady, isClientIdMissing]);
+    }, [isGsiInitialized, isClientIdMissing]);
 
     return (
         <div className="h-screen w-full flex items-center justify-center bg-brand-primary p-4">
@@ -34,17 +38,16 @@ const LoginView: React.FC = () => {
                         <p className="font-bold text-lg text-center mb-3">Google Sign-In Not Configured</p>
                         <p className="mb-2">To enable Google Sign-In, the application owner needs to provide a Google Client ID as an environment variable (`VITE_GOOGLE_CLIENT_ID`).</p>
                         <p className="mt-2">If running locally, you can create a <code className="bg-slate-700 px-1 py-0.5 rounded">.env.local</code> file with the variable.</p>
-                         <p className="mt-4 text-center text-xs text-yellow-400">Sign-in is required to use the application.</p>
                     </div>
                 ) : (
-                    isGapiReady && <div id="signInDiv" className="flex justify-center"></div>
-                )}
-
-                {!isGapiReady && !isClientIdMissing && (
-                     <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-lg">
-                        <p className="font-bold">Loading...</p>
-                        <p className="text-sm">Waiting for Google Sign-In services.</p>
-                    </div>
+                    isGsiInitialized ? (
+                         <div id="signInDiv" className="flex justify-center"></div>
+                    ) : (
+                         <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-lg">
+                            <p className="font-bold">Loading...</p>
+                            <p className="text-sm">Initializing Google Sign-In services.</p>
+                        </div>
+                    )
                 )}
             </div>
         </div>

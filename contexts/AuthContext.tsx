@@ -14,6 +14,7 @@ interface AuthContextType {
     user: AuthUser | null;
     isLoaded: boolean;
     signOut: () => void;
+    isGsiInitialized: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,10 +25,44 @@ const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
+    const [isGsiInitialized, setIsGsiInitialized] = useState(false);
     
     const isClientIdConfigured = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID_HERE";
     const userStorageKey = 'learn-with-ai-user';
 
+    // 1. Restore user from storage on initial load to prevent flicker
+    useEffect(() => {
+        const storedUser = localStorage.getItem(userStorageKey);
+        if (storedUser) {
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch {
+                localStorage.removeItem(userStorageKey);
+            }
+        }
+        setIsLoaded(true); // Mark as loaded after initial check
+    }, []);
+
+    // 2. Load GSI script if client ID is configured
+    useEffect(() => {
+        if (!isClientIdConfigured) {
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://accounts.google.com/gsi/client';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => setIsGsiScriptLoaded(true);
+        script.onerror = () => console.error('Google GSI script failed to load.');
+        document.body.appendChild(script);
+
+        return () => {
+            const existingScript = document.querySelector(`script[src="${script.src}"]`);
+            if (existingScript) document.body.removeChild(existingScript);
+        };
+    }, [isClientIdConfigured]);
+    
     const handleCredentialResponse = (response: any) => {
         const id_token = response.credential;
         // In a real production app, this token should be sent to a backend server for verification.
@@ -46,50 +81,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signOut = () => {
         setUser(null);
         localStorage.removeItem(userStorageKey); // Always remove user data from storage on sign out
-        if (isClientIdConfigured && typeof google !== 'undefined') {
+        if (isGsiInitialized && typeof google !== 'undefined') {
             // Disable one-tap login after a user explicitly signs out
             google.accounts.id.disableAutoSelect();
         }
     };
     
+    // 3. Initialize GSI when script is loaded
     useEffect(() => {
-        // If the client ID is not configured, we cannot authenticate. The user state will remain null,
-        // and the main App component will render the LoginView, which shows the configuration error.
-        if (!isClientIdConfigured) {
-            // Clear any potentially lingering user data from local storage (e.g., an old mock user)
-            localStorage.removeItem(userStorageKey);
-            setIsLoaded(true);
-            return;
-        }
-
-        // Check for a persisted user session in localStorage from a previous successful sign-in.
-        const storedUser = localStorage.getItem(userStorageKey);
-        if (storedUser) {
-             try {
-                const parsedUser = JSON.parse(storedUser);
-                // A simple validation to ensure it looks like a real user object from Google
-                if (parsedUser && parsedUser.id && parsedUser.email) {
-                    setUser(parsedUser);
-                } else {
-                    // Stored data is invalid or from a mock user, so clear it.
-                    localStorage.removeItem(userStorageKey);
-                }
-            } catch(e) {
-                 console.error("Failed to parse stored user, clearing storage.", e);
-                 localStorage.removeItem(userStorageKey);
-            }
-        }
-
-        if (typeof google !== 'undefined') {
+        if (isGsiScriptLoaded && typeof google !== 'undefined' && google.accounts && !isGsiInitialized) {
             google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 callback: handleCredentialResponse,
                 auto_select: true
             });
+            setIsGsiInitialized(true);
 
-            // Prompt for login only if we didn't find a user in storage.
-            // This prevents the one-tap prompt from showing up on every page load for a signed-in user.
-            if (!localStorage.getItem(userStorageKey)) {
+            // Prompt for login only if no user is already logged in
+            if (!user) {
                 google.accounts.id.prompt((notification: any) => {
                     if (notification.isNotDisplayed()) {
                         console.log('One-tap prompt was not displayed:', notification.getNotDisplayedReason());
@@ -101,10 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 });
             }
         }
-        setIsLoaded(true);
-    }, [isClientIdConfigured]);
+    }, [isGsiScriptLoaded, user, isGsiInitialized]);
 
-    const value = { user, isLoaded, signOut };
+
+    const value = { user, isLoaded, signOut, isGsiInitialized };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
