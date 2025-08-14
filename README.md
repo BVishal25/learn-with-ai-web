@@ -9,15 +9,15 @@ View your app in AI Studio: https://ai.studio/apps/drive/1eRTLqc7KGmCcaqoIyA1u8H
 - **AI-Powered Tools:** Features like AI-generated lesson content and simplified explanations, powered by the Gemini API.
 - **Gamified Learning:** An "AI Venture" text-based RPG to apply your knowledge in fun, simulated scenarios.
 - **Integrated Note-Taking:** Save your thoughts and key takeaways directly from any lesson.
-- **User-Provided API Key:** Users can provide their own Gemini API key to power the application's AI features.
+- **User-Provided Multi API Key:** Users can provide their own AI API key from the provided services (11 AI APIs are present now) to power the application's AI features.
 
 ## How It Works
 
-The application is a modern React single-page application built with Vite and TypeScript. It uses the Google Gemini API for its intelligent features.
+The application is a modern React single-page application built with Vite and TypeScript. It uses the Google Gemini API as default for its intelligent features. But user can customize the their API. 
 
-### User-Provided Gemini API Key
+### User-Provided AI API Key
 
-To manage API costs and allow for scalability, this application requires users to provide their own Gemini API key.
+To manage API costs and allow for scalability, this application requires users to provide their own AI API key (from the provided API services).
 
 1.  A user signs into the application.
 2.  They navigate to the **Settings** page.
