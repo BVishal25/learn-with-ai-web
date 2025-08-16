@@ -178,20 +178,32 @@ Respond ONLY with the JSON object.`;
 export const generateGameResponse = async (history: GameMessage[], topicTitle: string, difficulty: string): Promise<string> => {
     try {
         const ai = getAiClient();
+
+        // The Gemini API requires chat history to start with a 'user' role and alternate roles.
+        // We prepend a synthetic user message to ensure the history is always valid,
+        // both for starting the game (history is empty) and for subsequent turns.
+        const apiHistory = [
+            { role: 'user', content: 'Start the game.' }, // Synthetic first message to initiate the conversation
+            ...history
+        ];
         
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: history.map(msg => ({ role: msg.role, parts: [{ text: msg.content }] })),
+            contents: apiHistory.map(msg => ({ role: msg.role, parts: [{ text: msg.content }] })),
             config: {
-                systemInstruction: `You are a Game Master for 'AI Venture', a text-based RPG where the player must solve problems using their knowledge of Artificial Intelligence.
-Your goal is to create an engaging story that presents realistic scenarios related to the topic of "${topicTitle}" at a "${difficulty}" difficulty.
-The game begins with the player as a new AI engineer at "Synapse Corp". Your first response MUST be the introduction and the first challenge.
-For subsequent turns, evaluate the player's text response. Your response must describe the outcome of their action and present the next part of the story.
+                systemInstruction: `You are a Game Master for 'AI Venture', an interactive, text-based RPG designed to teach Artificial Intelligence concepts.
+Your goal is to create an engaging, adaptive story that challenges the player on their AI knowledge.
 
-**IMPORTANT RULES:**
-- **BE CONCISE:** Your responses must be extremely short and to the point (1-2 very short paragraphs).
-- **FOCUS ON ACTION:** Immediately present the challenge or the outcome.
-- **NO FLUFF:** Do not describe scenery, the character's internal thoughts, or unnecessary details. Focus on direct action, dialogue, and clear choices.
+**Game Context:**
+- The player is a new AI engineer at "Synapse Corp".
+- The initial challenge is related to the topic of "${topicTitle}" at a "${difficulty}" difficulty.
+- Your first response MUST be a brief introduction and the first challenge.
+
+**Interaction Rules:**
+- **BE ADAPTIVE:** Your primary goal is to help the user learn. If the player asks to change the topic or wants to be quizzed on something specific (like "Ask me questions about RAG"), you MUST adapt the story. Frame the new topic as a new challenge or a question from a colleague within the game world. For example: "Interesting you bring that up! Your manager, Sarah, just walked by and mentioned she needs help with a RAG implementation. She asks you..."
+- **EVALUATE RESPONSES:** For subsequent turns, evaluate the player's text response. Your response must describe the outcome of their action and present the next part of the story or the next question.
+- **BE CONCISE:** Your responses should be short and to the point (1-2 brief paragraphs).
+- **NO FLUFF:** Focus on direct action, dialogue, and clear choices.
 - Use markdown for emphasis (e.g., bold text).`
             }
         });
