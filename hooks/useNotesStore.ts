@@ -22,29 +22,36 @@ const getNotesFromStorage = (storageKey: string | null): Note[] => {
 
 // Custom hook for managing notes
 export const useNotesStore = () => {
-    const { user } = useAuth();
-    const storageKey = user ? `${NOTES_KEY_PREFIX}-${user.id}` : null;
+    const { user, sessionMode } = useAuth();
     
-    const [notes, setNotes] = useState<Note[]>(() => getNotesFromStorage(storageKey));
+    const getStorageKey = useCallback(() => {
+        if (sessionMode === 'user' && user) {
+            return `${NOTES_KEY_PREFIX}-${user.id}`;
+        }
+        if (sessionMode === 'guest') {
+            return `${NOTES_KEY_PREFIX}-guest`;
+        }
+        return null;
+    }, [user, sessionMode]);
+
+    const [notes, setNotes] = useState<Note[]>(() => getNotesFromStorage(getStorageKey()));
 
     useEffect(() => {
-        // Function to update state from storage
         const updateStateFromStorage = () => {
-            setNotes(getNotesFromStorage(storageKey));
+            setNotes(getNotesFromStorage(getStorageKey()));
         };
 
-        // Initial load for the current user
         updateStateFromStorage();
         
-        // Listen for custom event to reload notes when they are changed
         window.addEventListener(NOTES_UPDATED_EVENT, updateStateFromStorage);
         
         return () => {
             window.removeEventListener(NOTES_UPDATED_EVENT, updateStateFromStorage);
         };
-    }, [storageKey]);
+    }, [getStorageKey]);
   
     const addNote = useCallback((noteData: { content: string, sourcePath: string }) => {
+        const storageKey = getStorageKey();
         if (!storageKey) return;
 
         const newNote: Note = {
@@ -63,9 +70,10 @@ export const useNotesStore = () => {
         } catch (error) {
             console.error('Failed to save note to localStorage:', error);
         }
-    }, [storageKey]);
+    }, [getStorageKey]);
 
     const updateNote = useCallback((noteId: string, content: string) => {
+        const storageKey = getStorageKey();
         if (!storageKey) return;
         
         const currentNotes = getNotesFromStorage(storageKey);
@@ -79,9 +87,10 @@ export const useNotesStore = () => {
         } catch (error) {
             console.error('Failed to update note in localStorage:', error);
         }
-    }, [storageKey]);
+    }, [getStorageKey]);
 
     const deleteNote = useCallback((noteId: string) => {
+        const storageKey = getStorageKey();
         if (!storageKey) return;
         
         const currentNotes = getNotesFromStorage(storageKey);
@@ -93,7 +102,7 @@ export const useNotesStore = () => {
         } catch (error) {
             console.error('Failed to delete note from localStorage:', error);
         }
-    }, [storageKey]);
+    }, [getStorageKey]);
 
     return { notes, addNote, updateNote, deleteNote };
 };

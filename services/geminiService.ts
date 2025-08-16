@@ -5,19 +5,31 @@ import { AI_PROVIDERS, DEFAULT_PROVIDER_ID } from '../data/providers';
 // Helper to get provider settings from localStorage
 const getProviderSettings = (): { activeProviderId: string, apiKey: string | null } => {
     try {
-        const userString = localStorage.getItem('learn-with-ai-user');
-        if (!userString) return { activeProviderId: DEFAULT_PROVIDER_ID, apiKey: null };
+        const sessionMode = localStorage.getItem('learn-with-ai-session-mode-v2');
+        let settingsKey: string | null = null;
         
-        const user: AuthUser = JSON.parse(userString);
-        const settingsKey = `learn-with-ai-provider-settings-v1-${user.id}`;
-        const settingsString = localStorage.getItem(settingsKey);
+        if (sessionMode === 'guest') {
+            settingsKey = `learn-with-ai-provider-settings-v1-guest`;
+        } else if (sessionMode === 'user') {
+            const userString = localStorage.getItem('learn-with-ai-user-v2');
+            if (userString) {
+                const user: AuthUser = JSON.parse(userString);
+                settingsKey = `learn-with-ai-provider-settings-v1-${user.id}`;
+            }
+        }
+        
+        if (!settingsKey) {
+            return { activeProviderId: DEFAULT_PROVIDER_ID, apiKey: null };
+        }
 
+        const settingsString = localStorage.getItem(settingsKey);
         if (settingsString) {
             const settings = JSON.parse(settingsString);
             const activeProviderId = settings.activeProviderId || DEFAULT_PROVIDER_ID;
             const apiKey = settings.apiKeys?.[activeProviderId] || null;
             return { activeProviderId, apiKey };
         }
+        
         return { activeProviderId: DEFAULT_PROVIDER_ID, apiKey: null };
     } catch (e) {
         console.error("Could not retrieve provider settings", e);

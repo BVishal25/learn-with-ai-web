@@ -10,7 +10,7 @@ interface SettingsViewProps {
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ currentTheme, onThemeChange }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, sessionMode } = useAuth();
   const [settings, setActiveProviderId, setApiKey] = useAiProviderStore();
   
   const [localApiKey, setLocalApiKey] = useState(settings.apiKeys[settings.activeProviderId] || '');
@@ -112,8 +112,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentTheme, onThemeChange
 
       {/* Account Information */}
       <div className="bg-brand-secondary p-6 rounded-xl border border-slate-700">
-        <h2 className="text-2xl font-bold mb-4 text-brand-light">Account</h2>
-        {user ? (
+        <h2 className="text-2xl font-bold mb-4 text-brand-light">Session</h2>
+        {sessionMode === 'user' && user ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-brand-muted">
               Signed in as <strong>{user.email}</strong>
@@ -126,7 +126,17 @@ const SettingsView: React.FC<SettingsViewProps> = ({ currentTheme, onThemeChange
             </button>
           </div>
         ) : (
-          <p className="text-brand-muted">You are not signed in.</p>
+           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+             <p className="text-brand-muted">
+              You are currently in <strong>Guest Mode</strong>.
+            </p>
+            <button
+              onClick={signOut}
+              className="w-full sm:w-auto px-4 py-2 bg-brand-accent text-brand-primary font-bold rounded-lg hover:bg-emerald-200 transition-colors"
+            >
+              Sign In or Switch Account
+            </button>
+          </div>
         )}
       </div>
     </div>

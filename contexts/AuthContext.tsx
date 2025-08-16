@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 
 // This is a global variable from the GSI script
 declare const google: any;
@@ -10,10 +10,14 @@ interface AuthUser {
     picture: string;
 }
 
+type SessionMode = 'none' | 'guest' | 'user';
+
 interface AuthContextType {
     user: AuthUser | null;
+    sessionMode: SessionMode;
     isLoaded: boolean;
     signOut: () => void;
+    startGuestSession: () => void;
     isGsiInitialized: boolean;
 }
 
@@ -24,24 +28,36 @@ const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<AuthUser | null>(null);
+    const [sessionMode, setSessionMode] = useState<SessionMode>('none');
     const [isLoaded, setIsLoaded] = useState(false);
     const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
     const [isGsiInitialized, setIsGsiInitialized] = useState(false);
     
     const isClientIdConfigured = GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== "YOUR_GOOGLE_CLIENT_ID_HERE";
-    const userStorageKey = 'learn-with-ai-user';
+    const userStorageKey = 'learn-with-ai-user-v2';
+    const sessionModeKey = 'learn-with-ai-session-mode-v2';
 
-    // 1. Restore user from storage on initial load to prevent flicker
+    // 1. Restore session on initial load
     useEffect(() => {
         const storedUser = localStorage.getItem(userStorageKey);
+        const storedSessionMode = localStorage.getItem(sessionModeKey) as SessionMode | null;
+
         if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                const parsedUser = JSON.parse(storedUser);
+                setUser(parsedUser);
+                setSessionMode('user');
             } catch {
                 localStorage.removeItem(userStorageKey);
+                localStorage.removeItem(sessionModeKey);
+                setSessionMode('none');
             }
+        } else if (storedSessionMode === 'guest') {
+            setSessionMode('guest');
+        } else {
+            setSessionMode('none');
         }
-        setIsLoaded(true); // Mark as loaded after initial check
+        setIsLoaded(true);
     }, []);
 
     // 2. Load GSI script if client ID is configured
@@ -75,18 +91,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             picture: decodedToken.picture,
         };
         localStorage.setItem(userStorageKey, JSON.stringify(newUser));
+        localStorage.setItem(sessionModeKey, 'user');
         setUser(newUser);
+        setSessionMode('user');
     };
 
-    const signOut = () => {
+    const signOut = useCallback(() => {
         setUser(null);
-        localStorage.removeItem(userStorageKey); // Always remove user data from storage on sign out
+        setSessionMode('none');
+        localStorage.removeItem(userStorageKey);
+        localStorage.removeItem(sessionModeKey);
         if (isGsiInitialized && typeof google !== 'undefined') {
             // Disable one-tap login after a user explicitly signs out
             google.accounts.id.disableAutoSelect();
         }
-    };
+    }, [isGsiInitialized]);
     
+    const startGuestSession = useCallback(() => {
+        setSessionMode('guest');
+        localStorage.setItem(sessionModeKey, 'guest');
+        // Make sure no user data is lingering
+        localStorage.removeItem(userStorageKey);
+        setUser(null);
+    }, []);
+
     // 3. Initialize GSI when script is loaded
     useEffect(() => {
         if (isGsiScriptLoaded && typeof google !== 'undefined' && google.accounts && !isGsiInitialized) {
@@ -96,24 +124,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 auto_select: true
             });
             setIsGsiInitialized(true);
-
-            // Prompt for login only if no user is already logged in
-            if (!user) {
-                google.accounts.id.prompt((notification: any) => {
-                    if (notification.isNotDisplayed()) {
-                        console.log('One-tap prompt was not displayed:', notification.getNotDisplayedReason());
-                    } else if (notification.isSkippedMoment()) {
-                        console.log('One-tap prompt was skipped:', notification.getSkippedReason());
-                    } else if (notification.isDismissedMoment()) {
-                         console.log('One-tap prompt was dismissed:', notification.getDismissedReason());
-                    }
-                });
-            }
         }
-    }, [isGsiScriptLoaded, user, isGsiInitialized]);
+    }, [isGsiScriptLoaded, isGsiInitialized]);
 
 
-    const value = { user, isLoaded, signOut, isGsiInitialized };
+    const value = { user, sessionMode, isLoaded, signOut, startGuestSession, isGsiInitialized };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

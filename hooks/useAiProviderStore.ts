@@ -16,7 +16,7 @@ export const useAiProviderStore = (): [
     (providerId: string, key: string | null) => void,
     boolean
 ] => {
-  const { user } = useAuth();
+  const { user, sessionMode } = useAuth();
   const [settings, setSettings] = useState<AiProviderSettings>({
       activeProviderId: DEFAULT_PROVIDER_ID,
       apiKeys: {}
@@ -24,11 +24,18 @@ export const useAiProviderStore = (): [
   const [isLoaded, setIsLoaded] = useState(false);
 
   const getStorageKey = useCallback(() => {
-    return user ? `${PROVIDER_SETTINGS_PREFIX}-${user.id}` : null;
-  }, [user]);
+    if (sessionMode === 'user' && user) {
+        return `${PROVIDER_SETTINGS_PREFIX}-${user.id}`;
+    }
+    if (sessionMode === 'guest') {
+        return `${PROVIDER_SETTINGS_PREFIX}-guest`;
+    }
+    return null;
+  }, [user, sessionMode]);
 
   const loadSettingsFromStorage = useCallback(() => {
     const storageKey = getStorageKey();
+    const defaultSettings = { activeProviderId: DEFAULT_PROVIDER_ID, apiKeys: {} };
     if (storageKey) {
       try {
         const storedSettings = localStorage.getItem(storageKey);
@@ -39,15 +46,14 @@ export const useAiProviderStore = (): [
               apiKeys: parsed.apiKeys || {}
           });
         } else {
-            // Default settings for a new user
-            setSettings({ activeProviderId: DEFAULT_PROVIDER_ID, apiKeys: {} });
+            setSettings(defaultSettings);
         }
       } catch (error) {
         console.error('Failed to load provider settings:', error);
-        setSettings({ activeProviderId: DEFAULT_PROVIDER_ID, apiKeys: {} });
+        setSettings(defaultSettings);
       }
     } else {
-      setSettings({ activeProviderId: DEFAULT_PROVIDER_ID, apiKeys: {} });
+      setSettings(defaultSettings);
     }
   }, [getStorageKey]);
 

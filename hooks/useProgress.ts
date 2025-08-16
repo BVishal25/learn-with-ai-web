@@ -4,21 +4,30 @@ import { useAuth } from '../contexts/AuthContext';
 const PROGRESS_KEY_PREFIX = 'learn-with-ai-progress-v3';
 
 export const useProgress = () => {
-  const { user } = useAuth();
-  const PROGRESS_KEY = user ? `${PROGRESS_KEY_PREFIX}-${user.id}` : null;
+  const { user, sessionMode } = useAuth();
+
+  const getStorageKey = useCallback(() => {
+    if (sessionMode === 'user' && user) {
+        return `${PROGRESS_KEY_PREFIX}-${user.id}`;
+    }
+    if (sessionMode === 'guest') {
+        return `${PROGRESS_KEY_PREFIX}-guest`;
+    }
+    return null;
+  }, [user, sessionMode]);
 
   const [completedMicroLessons, setCompletedMicroLessons] = useState<Set<string>>(new Set());
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    setIsLoaded(false); // Set to loading when user/key changes
+    setIsLoaded(false);
+    const PROGRESS_KEY = getStorageKey();
     if (PROGRESS_KEY) {
       try {
         const storedProgress = localStorage.getItem(PROGRESS_KEY);
         if (storedProgress) {
           setCompletedMicroLessons(new Set(JSON.parse(storedProgress)));
         } else {
-          // If no progress for this user yet, start with a fresh set
           setCompletedMicroLessons(new Set());
         }
       } catch (error) {
@@ -26,14 +35,14 @@ export const useProgress = () => {
         setCompletedMicroLessons(new Set());
       }
     } else {
-      // No user, or user logged out, so clear progress
       setCompletedMicroLessons(new Set());
     }
     setIsLoaded(true);
-  }, [PROGRESS_KEY]);
+  }, [getStorageKey]);
 
   const toggleMicroLessonComplete = useCallback((microLessonId: string) => {
-    if (!PROGRESS_KEY) return; // Cannot save progress if not logged in
+    const PROGRESS_KEY = getStorageKey();
+    if (!PROGRESS_KEY) return;
 
     setCompletedMicroLessons(prev => {
       const newProgress = new Set(prev);
@@ -49,7 +58,7 @@ export const useProgress = () => {
       }
       return newProgress;
     });
-  }, [PROGRESS_KEY]);
+  }, [getStorageKey]);
 
   return { completedMicroLessons, toggleMicroLessonComplete, isLoaded };
 };

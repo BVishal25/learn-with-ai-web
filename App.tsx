@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import DashboardView from './components/DashboardView';
 import LearnView from './components/LearnView';
@@ -7,10 +5,10 @@ import AIVentureGame from './components/AIVentureGame';
 import SettingsView from './components/SettingsView';
 import NotesView from './components/NotesView';
 import PomodoroTimer from './components/PomodoroTimer';
-import LoginView from './components/LoginView';
+import WelcomeView from './components/WelcomeView';
 import AIUpdatesView from './components/AIUpdatesView';
 import { THEMES, Theme } from './data/themes';
-import { BookOpenIcon, LayoutDashboardIcon, GameControllerIcon, Cog6ToothIcon, BrainCircuitIcon, PencilIcon as NotesIcon, ClockIcon, Bars3Icon, SparklesIcon, XMarkIcon } from './components/ui/icons';
+import { BookOpenIcon, LayoutDashboardIcon, GameControllerIcon, Cog6ToothIcon, BrainCircuitIcon, PencilIcon as NotesIcon, ClockIcon, Bars3Icon, SparklesIcon, XMarkIcon, InformationCircleIcon } from './components/ui/icons';
 import { useAuth } from './contexts/AuthContext';
 import { useAiProviderStore } from './hooks/useAiProviderStore';
 import { MicroLesson } from './types';
@@ -37,6 +35,20 @@ const NavItem: React.FC<{
     </button>
 );
 
+const GuestModeBanner: React.FC<{ onSignIn: () => void; onDismiss: () => void; }> = ({ onSignIn, onDismiss }) => {
+  return (
+    <div className="bg-sky-900/80 text-sky-100 p-2 text-center text-sm font-medium flex-shrink-0 flex items-center justify-center gap-2 relative">
+      <InformationCircleIcon className="h-5 w-5" />
+      <span>You are in Guest Mode. Your progress is saved on this device only.</span>
+      <button onClick={onSignIn} className="underline font-bold hover:text-white">
+        Sign In
+      </button>
+      <button onClick={onDismiss} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-sky-200 hover:text-white rounded-full" aria-label="Dismiss guest mode banner">
+        <XMarkIcon className="h-5 w-5" />
+      </button>
+    </div>
+  );
+};
 
 type View = 'dashboard' | 'learn' | 'game' | 'notes' | 'ai-updates' | 'settings';
 
@@ -66,6 +78,9 @@ const App: React.FC = () => {
   
   // Check for desktop view to disable hover on mobile
   const [isDesktopView, setIsDesktopView] = useState(window.innerWidth >= 768); // 768px is Tailwind's 'md' breakpoint
+  const [isGuestBannerVisible, setIsGuestBannerVisible] = useState(
+    () => sessionStorage.getItem('guestBannerDismissed') !== 'true'
+  );
 
   useEffect(() => {
     const handleResize = () => {
@@ -81,7 +96,7 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   
-  const { user, isLoaded: authIsLoaded } = useAuth();
+  const { user, sessionMode, isLoaded: authIsLoaded, signOut } = useAuth();
   const [settings, _, __, providerSettingsAreLoaded] = useAiProviderStore();
   const [selectedMicroLesson, setSelectedMicroLesson] = useState<MicroLesson | null>(null);
   
@@ -177,6 +192,15 @@ const App: React.FC = () => {
     setIsMobileSidebarOpen(false); // Close mobile sidebar on navigation
   }
 
+  const handleSignInRequest = () => {
+      signOut(); // Signing out will reset sessionMode to 'none' and show WelcomeView
+  };
+
+  const handleDismissGuestBanner = () => {
+      setIsGuestBannerVisible(false);
+      sessionStorage.setItem('guestBannerDismissed', 'true');
+  };
+
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
@@ -206,8 +230,8 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return <LoginView />;
+  if (sessionMode === 'none') {
+    return <WelcomeView />;
   }
 
   return (
@@ -304,6 +328,7 @@ const App: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 bg-brand-primary flex flex-col relative overflow-hidden">
+          {sessionMode === 'guest' && isGuestBannerVisible && <GuestModeBanner onSignIn={handleSignInRequest} onDismiss={handleDismissGuestBanner} />}
           {!isApiKeySetForProvider && <ApiKeyBanner onNav={() => handleNavClick('settings')} providerId={settings.activeProviderId} />}
           
            <header className="flex-shrink-0 flex justify-between items-center p-4 border-b border-slate-800">
